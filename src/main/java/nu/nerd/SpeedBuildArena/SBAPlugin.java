@@ -9,7 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.mewin.WGRegionEvents.WGRegionEventsPlugin;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 
 import net.md_5.bungee.api.ChatColor;

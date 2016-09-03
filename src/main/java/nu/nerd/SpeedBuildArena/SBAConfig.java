@@ -1,6 +1,5 @@
 package nu.nerd.SpeedBuildArena;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 import org.bukkit.configuration.file.FileConfiguration;
@@ -61,9 +60,6 @@ public class SBAConfig {
         }
         
         HAVE_WGREGION_EVENTS = sba.getServer().getPluginManager().getPlugin("WGRegionEvents") != null;
-
-        // TODO
-        sba.getLogger().info(String.format("Script is %d lines long", SCRIPT.size()));
         
         VALID = true;
     }

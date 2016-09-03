@@ -13,7 +13,7 @@ public class SBARemovePlayers implements SBACommand {
     }
     
     /**
-     * Remove all player permisions from the plots
+     * Remove all player permissions from the plots
      * 
      * @param context SpeedBuild object
      */

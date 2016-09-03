@@ -1,13 +1,11 @@
 package nu.nerd.SpeedBuildArena;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarFlag;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
@@ -42,9 +40,9 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	private List<ProtectedRegion> _plots;
 	private ProtectedRegion _arena;
 
-	private long _nextCommandTime;
-	private List<SBACommand> _script;
-	private int _commandIndex = 0;
+	private long _nextCommandTime; // Time to run the next SBA command
+	private List<SBACommand> _script; // Array of SBA commands
+	private int _commandIndex = 0; // Instruction Pointer
 	
 	private BossBar _bossBar;
 	private long _bossBarStartTime;
@@ -62,9 +60,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	 */
 	public SBA(SBAPlugin sba) throws Exception {
 		_sba = sba;
-		
-		// TODO
-		_sba.getLogger().info("Creating SBA Object");
 		
 		_config = _sba.getSBAConfig();
 		if(!_config.VALID) {
@@ -98,10 +93,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 		    _plots.add(r);
 		}
 		
-		
-	      // TODO
-        _sba.getLogger().info("Finishing SBA plugin: Starting scheduler");
-		
 		// Fire up the task scheduler
 		_task = _sba.getServer().getScheduler().runTaskTimer(_sba, this, 0, 1);
 		_nextCommandTime = System.currentTimeMillis();
@@ -127,9 +118,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	 */
 	@Override
 	public void close() {
-	    // TODO: Logging
-	    _sba.getLogger().info("Shutting down");
-	    
 	    // Wipe the plots
 	    try {
             for(ProtectedRegion plot : _plots) {
@@ -156,9 +144,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	 */
     @Override
     public void run() { 
-        // TODO
-        //_sba.getLogger().info(String.format("Scheduler Called: i = %d, len = %d",
-        //        _commandIndex, _script.size()));
         long now = System.currentTimeMillis();
 
         // Do the boss bar
@@ -196,8 +181,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerEnteredRegion(RegionEnteredEvent event) {
-        // TODO: Logging
-        _sba.getLogger().info("Enter Event");
         if(event.getRegion() == _arena && _bossBar != null) {
             _bossBar.addPlayer(event.getPlayer());
         }
@@ -210,8 +193,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerLeftRegion(RegionLeftEvent event) {
-        // TODO: Logging
-        _sba.getLogger().info("Left Event");
         if(event.getRegion() == _arena && _bossBar != null) {
             _bossBar.removePlayer(event.getPlayer());
         }
