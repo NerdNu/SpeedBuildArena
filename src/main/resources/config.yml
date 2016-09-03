@@ -1,0 +1,103 @@
+# Speed Build Arena configuration
+
+# Add players as owner.
+# Otherwise, players will be added as members.
+add_owners: false
+
+# Arena World
+world_name: world
+
+# Name of the speed build plot. The boss bar will be visible for players
+# inside this region. It is assumed that all the plots are within this
+# region as well.
+arena_plot_name: speedbuild
+
+# Names of arena plots
+plot_names:
+    - sbaplot01
+    - sbaplot02
+    - sbaplot03
+    - sbaplot04
+    - sbaplot05
+    - sbaplot06
+    - sbaplot07
+    - sbaplot08
+    - sbaplot09
+    - sbaplot10
+    - sbaplot11
+    - sbaplot12
+    - sbaplot13
+    - sbaplot14
+    - sbaplot15
+    - sbaplot16
+    - sbaplot17
+    - sbaplot18
+    - sbaplot19
+    - sbaplot20
+
+# Example arena command sequence.
+# There are 4 commands you can use.
+#
+# /msg message text goes here
+#
+# Everything after /msg and the first space is printed. &1 &2 etc sections will
+# be expanded.
+#
+# /sleep 1000
+#
+# Sleep for the given number of milliseconds. SpeedBuildArena
+# will run the commands as close as possible to the scheduled time.
+# If one command runs late, it will not cause the next command to run late.
+# SpeedBuildPlugin will check every tick to see if it is the proper time to run
+# a command.
+#
+# /addplayers
+#
+# This command will add players to the speed build plots and enable building.
+#
+# /removeplayers
+#
+# This command will remove all players permissions from the speed build arena plots.
+#
+# /startbossbar 12341234
+#
+# Show the boss bar and start a count down for the specified number of milliseconds.
+#
+
+command_sequence:
+  - "/removeplayers"
+  - "/msg &f[&4Speedbuild&f]&2 Speed Build will start in:"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 5"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 4"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 3"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 2"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 1"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 Start!"
+  - "/addplayers"
+  - "/startbossbar 600000"
+  - "/sleep 300000"
+  - "/msg &f[&4Speedbuild&f]&2 5 Minutes Remaining"
+  - "/sleep 180000"
+  - "/msg &f[&4Speedbuild&f]&2 2 Minutes Remaining"
+  - "/sleep 90000"
+  - "/msg &f[&4Speedbuild&f]&2 30 Seconds Remaining"
+  - "/sleep 25000"
+  - "/msg &f[&4Speedbuild&f]&2 5"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 4"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 3"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 2"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 1"
+  - "/sleep 1000"
+  - "/msg &f[&4Speedbuild&f]&2 TIMUE's UP!"
+  - "/removeplayers"
+

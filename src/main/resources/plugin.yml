@@ -1,0 +1,28 @@
+name: ${name}
+version: ${version}
+description: ${description}
+website: ${url}
+database: false
+depend: [WorldGuard]
+softdepend: [WGRegionEvents]
+author: [Challenger2]
+main: nu.nerd.SpeedBuildArena.SBAPlugin
+
+commands:
+  speedbuildarena:
+    description: Speed Build Arena Commands.
+    aliases: [sba, speedbuild]
+    permission: speedbuildarena.admin
+    usage: |
+      /<command> start
+      /<command> abort
+
+permissions:
+  speedbuildarena.*:
+    description: Give access to all Speed Build Arena commands
+    default: op
+    children:
+      speedbuildarena.admin: true
+  speedbuildarena.admin:
+    default: op
+    description: Gives access to start and abort sub-commands
