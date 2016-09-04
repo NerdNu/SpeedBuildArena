@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.bukkit.entity.Player;
 
+import com.sk89q.worldedit.Vector;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
@@ -35,12 +36,13 @@ public class SBAAddPlayers implements SBACommand {
             x = (int)player.getLocation().getX();
             y = (int)player.getLocation().getY();
             z = (int)player.getLocation().getZ();
+            Vector pos = new Vector(x, y, z);
             
             // Don't consider players outside the arena
             // If your not in the arena, you can't be in a plot, right?
-            if(arena.contains(x, y, z)) {
+            if(arena.contains(pos)) {
                 for(ProtectedRegion plot : plots) {
-                    if(plot.contains(x, y, z)) {
+                    if(plot.contains(pos)) {
                         if(config.ADD_OWNERS) {
                             plot.getOwners().addPlayer(wgp.wrapPlayer(player));
                         } else {

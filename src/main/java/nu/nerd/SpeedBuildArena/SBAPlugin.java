@@ -71,6 +71,7 @@ public class SBAPlugin extends JavaPlugin {
 	        _speedBuild.close();
 	        _speedBuild = null;
 	    }
+	    _config = null;
 		_wg = null;
 	}
 	

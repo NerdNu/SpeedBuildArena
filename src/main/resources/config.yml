@@ -98,6 +98,6 @@ command_sequence:
   - "/sleep 1000"
   - "/msg &f[&4Speedbuild&f]&2 1"
   - "/sleep 1000"
-  - "/msg &f[&4Speedbuild&f]&2 TIMUE's UP!"
+  - "/msg &f[&4Speedbuild&f]&2 TIME's UP!"
   - "/removeplayers"
 
