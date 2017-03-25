@@ -3,13 +3,24 @@ package nu.nerd.SpeedBuildArena;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
+import java.util.List;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.Vector;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -110,6 +121,13 @@ public class SBAPlugin extends JavaPlugin {
 		case "stop":
 			cmdAbort(sender, args);
 			break;
+		case "setfloor":
+		    try {
+		    cmdSetFloor(sender, args);
+		    } catch (Exception e) {
+		        // TODO: Fixme
+		    }
+		    break;
 		case "reload":
 		    reloadSBAConfig(sender);
 		    break;
@@ -173,6 +191,58 @@ public class SBAPlugin extends JavaPlugin {
 		    _speedBuild = null;
 		    sender.sendMessage(ChatColor.GREEN + "Speed Build aborted.");
 		}
+	}
+	
+	
+	/**
+	 * Set the floor area of a players arena
+	 * 
+	 * @param sender The player
+	 * @param args The block type to set the floor too
+	 * @throws WorldEditException 
+	 * @throws MaxChangedBlocksException 
+	 */
+	private void cmdSetFloor(CommandSender sender, String[] args) throws MaxChangedBlocksException, WorldEditException {
+
+	    if (!(sender instanceof Player)) {
+	        sender.sendMessage("Silly Console. Trix are for kids");
+	        return;
+	    }
+	    
+	    Player player = (Player)sender;
+
+	    // Ensure that an event is in progress
+	    if (_speedBuild == null) {
+	        sender.sendMessage(ChatColor.RED + "A Speed Build event is not in progress. Sorry :(");
+	        return;
+	    }
+	    
+	    // Make sure the player is a participant
+	    List<ProtectedRegion> plots = _speedBuild.getPlots();
+        int x, y, z;
+        x = (int)player.getLocation().getX();
+        y = (int)player.getLocation().getY();
+        z = (int)player.getLocation().getZ();
+        Vector pos = new Vector(x, y, z);
+	    for(ProtectedRegion plot : plots) {
+            if(plot.contains(pos)) {
+                //fill the plot to solid air for now
+                WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
+                WorldEdit we = wep.getWorldEdit();
+                com.sk89q.worldedit.LocalPlayer lp = wep.wrapPlayer(player);
+                Vector p1 = new Vector(plot.getMaximumPoint().getBlockX(),
+                                       plot.getMaximumPoint().getBlockY(),
+                                       plot.getMaximumPoint().getBlockZ());
+                Vector p2 = new Vector(plot.getMinimumPoint().getBlockX(),
+                                       plot.getMinimumPoint().getBlockY(),
+                                       plot.getMinimumPoint().getBlockZ());
+                CuboidRegion cr = new CuboidRegion(new BukkitWorld(player.getWorld()), p1, p2);
+                EditSession es = new EditSession(new BukkitWorld(player.getWorld()), cr.getArea());
+                es.setBlocks(cr, we.getBlock(lp, "air", true));
+            }
+            
+	    }
+
 	}
 	
 	
