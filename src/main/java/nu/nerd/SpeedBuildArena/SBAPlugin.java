@@ -12,13 +12,19 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.EditSessionFactory;
+import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.blocks.BaseBlock;
 import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.extension.factory.BlockFactory;
+import com.sk89q.worldedit.extension.input.ParserContext;
 import com.sk89q.worldedit.regions.CuboidRegion;
+import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
@@ -124,7 +130,8 @@ public class SBAPlugin extends JavaPlugin {
 		case "setfloor":
 		    try {
 		    cmdSetFloor(sender, args);
-		    } catch (Exception e) {
+		    } catch (Exception ex) {
+		        printStackTrace(ex);
 		        // TODO: Fixme
 		    }
 		    break;
@@ -163,6 +170,11 @@ public class SBAPlugin extends JavaPlugin {
 	 * @param args Command arguments
 	 */
 	private void cmdStart(CommandSender sender, String[] args) {
+	    if(!sender.hasPermission("speedbuildarena.admin")) {
+	        sender.sendMessage(ChatColor.RED + "You do not have permission to run this command");
+	        return;
+	    }
+	    
 	    if (_speedBuild != null) {
 	        sender.sendMessage(ChatColor.RED + "ERROR: Speed build is already running.");
 	        sender.sendMessage(ChatColor.RED + "Did you mean to use /SpeedBuildArena abort");
@@ -184,6 +196,11 @@ public class SBAPlugin extends JavaPlugin {
 	 * @param args Command arguments
 	 */
 	private void cmdAbort(CommandSender sender, String[] args) {
+	    if(!sender.hasPermission("speedbuildarena.admin")) {
+	       sender.sendMessage(ChatColor.RED + "You do not have permission to run this command");
+	       return;
+	    }
+	     
 		if (_speedBuild == null) {
 		    sender.sendMessage(ChatColor.RED + "Speed Build is not running.");
 		} else {
@@ -224,9 +241,51 @@ public class SBAPlugin extends JavaPlugin {
         y = (int)player.getLocation().getY();
         z = (int)player.getLocation().getZ();
         Vector pos = new Vector(x, y, z);
+        boolean foundPlot = false;
 	    for(ProtectedRegion plot : plots) {
             if(plot.contains(pos)) {
+                // Make sure the player is registered with this plot
+                if (!(plot.getOwners().contains(player.getUniqueId())
+                   || plot.getMembers().contains(player.getUniqueId()))) {
+                    sender.sendMessage(ChatColor.RED + "Get off my lawn, you whippersnapper! Find your own plot!");
+                    return;
+                }
+                
                 //fill the plot to solid air for now
+                
+                WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
+                WorldEdit we = wep.getWorldEdit();
+                BlockFactory bf = we.getBlockFactory();
+                EditSessionFactory f = we.getEditSessionFactory();
+                
+                com.sk89q.worldedit.entity.Player wePlayer = wep.wrapPlayer(player);
+                com.sk89q.worldedit.world.World weWorld = wePlayer.getWorld();
+                
+                //SessionManager sm = we.getSessionManager();
+                //LocalSession ls = new LocalSession(wep.getLocalConfiguration());
+                
+                // Get a block. This obeys the blacklist.
+                ParserContext context = new ParserContext();
+                context.setActor(wePlayer);
+                context.setWorld(weWorld);
+                context.setSession(null);
+                context.setRestricted(true);
+                context.setPreferringWildcard(false);
+                BaseBlock block = bf.parseFromInput("air", context);
+                
+                EditSession s = f.getEditSession(weWorld, 1000000);
+
+                Vector p1 = new Vector(plot.getMaximumPoint().getBlockX(),
+                                       plot.getMaximumPoint().getBlockY(),
+                                       plot.getMaximumPoint().getBlockZ());
+                Vector p2 = new Vector(plot.getMinimumPoint().getBlockX(),
+                                       plot.getMinimumPoint().getBlockY(),
+                                       plot.getMinimumPoint().getBlockZ());
+                CuboidRegion cr = new CuboidRegion(weWorld, p1, p2);
+
+                s.setBlocks(cr, block);
+                
+                /*
                 WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
                 WorldEdit we = wep.getWorldEdit();
                 com.sk89q.worldedit.LocalPlayer lp = wep.wrapPlayer(player);
@@ -239,8 +298,15 @@ public class SBAPlugin extends JavaPlugin {
                 CuboidRegion cr = new CuboidRegion(new BukkitWorld(player.getWorld()), p1, p2);
                 EditSession es = new EditSession(new BukkitWorld(player.getWorld()), cr.getArea());
                 es.setBlocks(cr, we.getBlock(lp, "air", true));
+                */
+                
+                foundPlot = true;
+                break;
             }
-            
+	    }
+	    if (!foundPlot) {
+	        sender.sendMessage(ChatColor.RED + "You must be standing in your plot");
+	        return;
 	    }
 
 	}
@@ -254,6 +320,7 @@ public class SBAPlugin extends JavaPlugin {
 		printStartUsage(sender);
 		printAbortUsage(sender);
 		printReloadUsage(sender);
+		printSetFloorUsage(sender);
 	}
 	
 	
@@ -262,7 +329,9 @@ public class SBAPlugin extends JavaPlugin {
 	 * @param sender
 	 */
 	public void printStartUsage(CommandSender sender) {
-		sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena start");
+	    if(sender.hasPermission("speedbuildarena.admin")) {
+	        sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena start");
+	    }
 	}
 	
 	
@@ -271,16 +340,29 @@ public class SBAPlugin extends JavaPlugin {
 	 * @param sender
 	 */
 	public void printAbortUsage(CommandSender sender) {
-		sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena abort");
+	    if(sender.hasPermission("speedbuildarena.admin")) {
+	        sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena abort");
+	    }
 	}
 	
 	
-	   /**
+	 /**
      * Print usage for the reload command.
      * @param sender
      */
     public void printReloadUsage(CommandSender sender) {
-        sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena reload");
+        if(sender.hasPermission("speedbuildarena.admin")) {
+            sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena reload");
+        }
+    }
+    
+    
+    /**
+     * Print usage for the setfloor command
+     * @param sender
+     */
+    public void printSetFloorUsage(CommandSender sender) {
+        sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena setfloor BLOCK");
     }
 	
 	
