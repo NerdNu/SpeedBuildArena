@@ -149,6 +149,11 @@ public class SBAPlugin extends JavaPlugin {
 	 * Relaod configuration file
 	 */
 	public void reloadSBAConfig(CommandSender sender) {
+       if(!sender.hasPermission("speedbuildarena.admin")) {
+           sender.sendMessage(ChatColor.RED + "You do not have permission to run this command");
+           return;
+        }
+
 	    try {
 	        _config.load(this);
 	    } catch (Exception ex) {
