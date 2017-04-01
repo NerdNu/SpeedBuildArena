@@ -10,6 +10,7 @@ import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
 import nu.nerd.SpeedBuildArena.SBA;
 import nu.nerd.SpeedBuildArena.SBAConfig;
+import nu.nerd.SpeedBuildArena.SBAPlot;
 
 public class SBAAddPlayers implements SBACommand {
 
@@ -28,7 +29,7 @@ public class SBAAddPlayers implements SBACommand {
         SBAConfig config = context.getPlugin().getSBAConfig();
         WorldGuardPlugin wgp = context.getPlugin().getWorldGuard();
         ProtectedRegion arena = context.getArenaPlot();
-        List<ProtectedRegion> plots = context.getPlots();
+        List<SBAPlot> plots = context.getPlots();
         
         // Is there a better way than to test every player with every plot?
         for(Player player : context.getServer().getOnlinePlayers()) {
@@ -41,12 +42,13 @@ public class SBAAddPlayers implements SBACommand {
             // Don't consider players outside the arena
             // If your not in the arena, you can't be in a plot, right?
             if(arena.contains(pos)) {
-                for(ProtectedRegion plot : plots) {
-                    if(plot.contains(pos)) {
+                for(SBAPlot plot : plots) {
+                    ProtectedRegion rplot = plot.getPlot();
+                    if(rplot.contains(pos)) {
                         if(config.ADD_OWNERS) {
-                            plot.getOwners().addPlayer(wgp.wrapPlayer(player));
+                            rplot.getOwners().addPlayer(wgp.wrapPlayer(player));
                         } else {
-                            plot.getMembers().addPlayer(wgp.wrapPlayer(player));
+                            rplot.getMembers().addPlayer(wgp.wrapPlayer(player));
                         }
                     }
                 }

@@ -1,7 +1,9 @@
 package nu.nerd.SpeedBuildArena;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import nu.nerd.SpeedBuildArena.SBAScript.SBACommand;
@@ -25,7 +27,10 @@ public class SBAConfig {
     public String ARENA_PLOT_NAME;
     
     /** Name of all the speed build plots */
-    public List<String> PLOT_NAMES;
+    //public List<String> PLOT_NAMES;
+    
+    /** Plot data */
+    public List<SBAConfigPlot> PLOTS;
     
     /** List of commands to be executed */
     public List<SBACommand> SCRIPT;
@@ -47,12 +52,16 @@ public class SBAConfig {
         if(ARENA_PLOT_NAME == null) {
             throw new Exception("Invalid config.yml. \"arena_plot_name\" is missing or corrupt");
         }
-        
-        PLOT_NAMES = config.getStringList("plot_names");
-        if(PLOT_NAMES == null) {
-            throw new Exception("Invalid config.yml: \"plot_names\" missing or corrupt");
+
+        PLOTS = new ArrayList<SBAConfigPlot>();
+        if(PLOTS == null) {
+            throw new Exception("Invalid config.yml: \"plots\" missing or corrupt");
         }
-        
+        ConfigurationSection section = config.getConfigurationSection("plots");
+        for (String key : section.getKeys(false)) {
+            PLOTS.add(new SBAConfigPlot(section.getConfigurationSection(key)));
+        }
+    
         SCRIPT = SBAFactory.loadFromConfig(config);
         
         if(SCRIPT == null || SCRIPT.isEmpty()) {

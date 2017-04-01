@@ -13,18 +13,15 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.EditSessionFactory;
-import com.sk89q.worldedit.LocalSession;
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.Vector;
 import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.blocks.BaseBlock;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.extension.factory.BlockFactory;
 import com.sk89q.worldedit.extension.input.ParserContext;
 import com.sk89q.worldedit.regions.CuboidRegion;
-import com.sk89q.worldedit.session.SessionManager;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
@@ -234,25 +231,30 @@ public class SBAPlugin extends JavaPlugin {
 	        return;
 	    }
 	    
+	    if (args.length != 1) {
+	        printSetFloorUsage(sender);
+	        return;
+	    }
+	    String blockName = args[0];
+	    
 	    // Make sure the player is a participant
-	    List<ProtectedRegion> plots = _speedBuild.getPlots();
+	    List<SBAPlot> plots = _speedBuild.getPlots();
         int x, y, z;
         x = (int)player.getLocation().getX();
         y = (int)player.getLocation().getY();
         z = (int)player.getLocation().getZ();
         Vector pos = new Vector(x, y, z);
         boolean foundPlot = false;
-	    for(ProtectedRegion plot : plots) {
-            if(plot.contains(pos)) {
+	    for(SBAPlot plot : plots) {
+            if(plot.getPlot().contains(pos)) {
                 // Make sure the player is registered with this plot
-                if (!(plot.getOwners().contains(player.getUniqueId())
-                   || plot.getMembers().contains(player.getUniqueId()))) {
+                if (!(plot.getPlot().getOwners().contains(player.getUniqueId())
+                   || plot.getPlot().getMembers().contains(player.getUniqueId()))) {
                     sender.sendMessage(ChatColor.RED + "Get off my lawn, you whippersnapper! Find your own plot!");
                     return;
                 }
                 
-                //fill the plot to solid air for now
-                
+                //Setup World Edit
                 WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
                 WorldEdit we = wep.getWorldEdit();
                 BlockFactory bf = we.getBlockFactory();
@@ -260,10 +262,7 @@ public class SBAPlugin extends JavaPlugin {
                 
                 com.sk89q.worldedit.entity.Player wePlayer = wep.wrapPlayer(player);
                 com.sk89q.worldedit.world.World weWorld = wePlayer.getWorld();
-                
-                //SessionManager sm = we.getSessionManager();
-                //LocalSession ls = new LocalSession(wep.getLocalConfiguration());
-                
+               
                 // Get a block. This obeys the blacklist.
                 ParserContext context = new ParserContext();
                 context.setActor(wePlayer);
@@ -271,20 +270,28 @@ public class SBAPlugin extends JavaPlugin {
                 context.setSession(null);
                 context.setRestricted(true);
                 context.setPreferringWildcard(false);
-                BaseBlock block = bf.parseFromInput("air", context);
+                BaseBlock block = null;
+                try {
+                    block = bf.parseFromInput(blockName, context);
+                } catch (Exception ex) {
+                    //sender.sendMessage(ChatColor.RED + "Unknown block \"" + blockName + "\".");
+                    sender.sendMessage(ChatColor.RED + ex.getMessage());
+                    return;
+                }
                 
                 EditSession s = f.getEditSession(weWorld, 1000000);
 
-                Vector p1 = new Vector(plot.getMaximumPoint().getBlockX(),
-                                       plot.getMaximumPoint().getBlockY(),
-                                       plot.getMaximumPoint().getBlockZ());
-                Vector p2 = new Vector(plot.getMinimumPoint().getBlockX(),
-                                       plot.getMinimumPoint().getBlockY(),
-                                       plot.getMinimumPoint().getBlockZ());
+                ProtectedRegion floor = plot.getFloor();
+                Vector p1 = new Vector(floor.getMaximumPoint().getBlockX(),
+                                       floor.getMaximumPoint().getBlockY(),
+                                       floor.getMaximumPoint().getBlockZ());
+                Vector p2 = new Vector(floor.getMinimumPoint().getBlockX(),
+                                       floor.getMinimumPoint().getBlockY(),
+                                       floor.getMinimumPoint().getBlockZ());
                 CuboidRegion cr = new CuboidRegion(weWorld, p1, p2);
 
                 s.setBlocks(cr, block);
-                
+
                 /*
                 WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
                 WorldEdit we = wep.getWorldEdit();
@@ -299,7 +306,7 @@ public class SBAPlugin extends JavaPlugin {
                 EditSession es = new EditSession(new BukkitWorld(player.getWorld()), cr.getArea());
                 es.setBlocks(cr, we.getBlock(lp, "air", true));
                 */
-                
+
                 foundPlot = true;
                 break;
             }

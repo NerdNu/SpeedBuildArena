@@ -37,7 +37,7 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	private SBAPlugin _sba;
 	private SBAConfig _config;
 	private RegionManager _wgrm;
-	private List<ProtectedRegion> _plots;
+	private List<SBAPlot> _plots;
 	private ProtectedRegion _arena;
 
 	private long _nextCommandTime; // Time to run the next SBA command
@@ -85,12 +85,9 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 		}
 
 		// Get all the plots
-		_plots = new ArrayList<ProtectedRegion>();
-		for(String plotName : _config.PLOT_NAMES) {
-		    ProtectedRegion r = _wgrm.getRegion(plotName);
-		    if(r == null)
-		        logNthrow("Unknown plot: \"%s\"", plotName);
-		    _plots.add(r);
+		_plots = new ArrayList<SBAPlot>();
+		for(SBAConfigPlot plot : _config.PLOTS) {
+		    _plots.add(new SBAPlot(plot, _wgrm));
 		}
 		
 		// Fire up the task scheduler
@@ -120,9 +117,9 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	public void close() {
 	    // Wipe the plots
 	    try {
-            for(ProtectedRegion plot : _plots) {
-                plot.getOwners().clear();
-                plot.getMembers().clear();
+            for(SBAPlot plot : _plots) {
+                plot.getPlot().getOwners().clear();
+                plot.getPlot().getMembers().clear();
             }
 	    } catch (Throwable ex) {
 	        _sba.printStackTrace(ex);
@@ -245,14 +242,14 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 
     
     /**
-     * Get Plots
+     * Get Plot data
      * @return The plots
      */
-    public List<ProtectedRegion> getPlots() {
+    public List<SBAPlot> getPlots() {
         return _plots;
     }
-    
-    
+
+
     /**
      * Return the master speed build arena plot. Assume all plots in
      * the arena are inside the arena plot.

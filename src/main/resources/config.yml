@@ -13,27 +13,16 @@ world_name: world
 arena_plot_name: speedbuild
 
 # Names of arena plots
-plot_names:
-    - sbaplot01
-    - sbaplot02
-    - sbaplot03
-    - sbaplot04
-    - sbaplot05
-    - sbaplot06
-    - sbaplot07
-    - sbaplot08
-    - sbaplot09
-    - sbaplot10
-    - sbaplot11
-    - sbaplot12
-    - sbaplot13
-    - sbaplot14
-    - sbaplot15
-    - sbaplot16
-    - sbaplot17
-    - sbaplot18
-    - sbaplot19
-    - sbaplot20
+plots:
+    plot1:
+      region_plot: sbaplot01
+      region_floor: sbaplot01_floor
+    plot2:
+      region_plot: sbaplot02
+      region_floor: sbaplot02_floor
+    plot3:
+      region_plot: sbaplot03
+      region_floor: sbaplot03_floor
 
 # Example arena command sequence.
 # There are 4 commands you can use.

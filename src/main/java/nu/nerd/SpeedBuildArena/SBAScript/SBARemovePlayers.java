@@ -2,9 +2,8 @@ package nu.nerd.SpeedBuildArena.SBAScript;
 
 import java.util.List;
 
-import com.sk89q.worldguard.protection.regions.ProtectedRegion;
-
 import nu.nerd.SpeedBuildArena.SBA;
+import nu.nerd.SpeedBuildArena.SBAPlot;
 
 public class SBARemovePlayers implements SBACommand {
 
@@ -19,11 +18,11 @@ public class SBARemovePlayers implements SBACommand {
      */
     @Override
     public void execute(SBA context) {
-        List<ProtectedRegion> plots = context.getPlots();
+        List<SBAPlot> plots = context.getPlots();
         
-        for(ProtectedRegion plot : plots) {
-            plot.getOwners().clear();
-            plot.getMembers().clear();
+        for(SBAPlot plot : plots) {
+            plot.getPlot().getOwners().clear();
+            plot.getPlot().getMembers().clear();
         }
     }
 }
