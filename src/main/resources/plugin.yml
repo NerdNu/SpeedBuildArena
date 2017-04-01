@@ -12,10 +12,6 @@ commands:
   speedbuildarena:
     description: Speed Build Arena Commands.
     aliases: [sba, speedbuild]
-    usage: |
-      /<command> start
-      /<command> abort
-      /<command> setfloor BLOCK
 
 permissions:
   speedbuildarena.*:
