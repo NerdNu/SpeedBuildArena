@@ -5,25 +5,19 @@ import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 
+import org.primesoft.blockshub.IBlocksHubApi;
+import org.primesoft.blockshub.api.BlockData;
+import org.primesoft.blockshub.api.Vector;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.EditSessionFactory;
-import com.sk89q.worldedit.MaxChangedBlocksException;
-import com.sk89q.worldedit.Vector;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.blocks.BaseBlock;
-import com.sk89q.worldedit.bukkit.WorldEditPlugin;
-import com.sk89q.worldedit.extension.factory.BlockFactory;
-import com.sk89q.worldedit.extension.input.ParserContext;
-import com.sk89q.worldedit.regions.CuboidRegion;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -43,6 +37,7 @@ import net.md_5.bungee.api.ChatColor;
 public class SBAPlugin extends JavaPlugin {
 	
 	private WorldGuardPlugin _wg = null;
+	private IBlocksHubApi _blocksHub = null;
 	private SBAConfig _config;
 	private SBA _speedBuild = null;
 
@@ -55,13 +50,30 @@ public class SBAPlugin extends JavaPlugin {
 	    getLogger().info("Loading SpeedBuildArena");
 		
 		// Load plugins
-		Plugin p = getServer().getPluginManager().getPlugin("WorldGuard");
+		Plugin p;
+		
+		p = getServer().getPluginManager().getPlugin("WorldGuard");
 		if (p == null || ! (p instanceof WorldGuardPlugin)) {
 			getLogger().severe("Failed to load WorldGuard plugin");
 			getServer().getPluginManager().disablePlugin(this);
 			return;
 		}
 		_wg = (WorldGuardPlugin)p;
+		
+		// Load blocks hub
+		p = getServer().getPluginManager().getPlugin("BlocksHub");
+		if (p == null) {
+		    getLogger().info("Blocks Hub plugin is null");
+		} else {
+		    getLogger().info("Blocks hub pluging is type " + p.getName() + ", " + p.getClass().getName());
+		}
+		if (p != null && (p instanceof org.primesoft.blockshub.BlocksHubBukkit)) {
+		    getLogger().info("Loaded BlocksHub plugin");
+		    org.primesoft.blockshub.BlocksHubBukkit bh = (org.primesoft.blockshub.BlocksHubBukkit)p;
+		    _blocksHub = (IBlocksHubApi)bh.getApi();
+		} else {
+		    getLogger().info("BlocksHub not loaded");
+		}
 
 		saveDefaultConfig();
 		
@@ -221,7 +233,7 @@ public class SBAPlugin extends JavaPlugin {
 	 * @throws WorldEditException 
 	 * @throws MaxChangedBlocksException 
 	 */
-	private void cmdSetFloor(CommandSender sender, String[] args) throws MaxChangedBlocksException, WorldEditException {
+	private void cmdSetFloor(CommandSender sender, String[] args) {
 
 	    if (!(sender instanceof Player)) {
 	        sender.sendMessage("Silly Console. Trix are for kids");
@@ -242,76 +254,58 @@ public class SBAPlugin extends JavaPlugin {
 	    }
 	    String blockName = args[0];
 	    
+	    // TODO: Use WE to lookup block names. It knows about the WE blacklist.
+	    Material material;
+	    material = Material.matchMaterial(blockName);
+	    if (material == null) {
+	        sender.sendMessage(ChatColor.RED + "Cannot find item: " + blockName);
+	        return;
+	    }
+	    
 	    // Make sure the player is a participant
 	    List<SBAPlot> plots = _speedBuild.getPlots();
         int x, y, z;
         x = (int)player.getLocation().getX();
         y = (int)player.getLocation().getY();
         z = (int)player.getLocation().getZ();
-        Vector pos = new Vector(x, y, z);
         boolean foundPlot = false;
 	    for(SBAPlot plot : plots) {
-            if(plot.getPlot().contains(pos)) {
+            if(plot.getPlot().contains(x, y, z)) {
                 // Make sure the player is registered with this plot
                 if (!(plot.getPlot().getOwners().contains(player.getUniqueId())
                    || plot.getPlot().getMembers().contains(player.getUniqueId()))) {
                     sender.sendMessage(ChatColor.RED + "Get off my lawn, you whippersnapper! Find your own plot!");
                     return;
                 }
+
+                // for each block
+                int minx = plot.getFloor().getMinimumPoint().getBlockX();
+                int miny = plot.getFloor().getMinimumPoint().getBlockY();
+                int minz = plot.getFloor().getMinimumPoint().getBlockZ();
+                int maxx = plot.getFloor().getMaximumPoint().getBlockX();
+                int maxy = plot.getFloor().getMaximumPoint().getBlockY();
+                int maxz = plot.getFloor().getMaximumPoint().getBlockZ();
+                World w = player.getWorld();
+
+                //getLogger().info(String.format("%d, %d, %d, %d, %d, %d", minx, miny, minz, maxx, maxy, maxz));
                 
-                //Setup World Edit
-                WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
-                WorldEdit we = wep.getWorldEdit();
-                BlockFactory bf = we.getBlockFactory();
-                EditSessionFactory f = we.getEditSessionFactory();
-                
-                com.sk89q.worldedit.entity.Player wePlayer = wep.wrapPlayer(player);
-                com.sk89q.worldedit.world.World weWorld = wePlayer.getWorld();
-               
-                // Get a block. This obeys the blacklist.
-                ParserContext context = new ParserContext();
-                context.setActor(wePlayer);
-                context.setWorld(weWorld);
-                context.setSession(null);
-                context.setRestricted(true);
-                context.setPreferringWildcard(false);
-                BaseBlock block = null;
-                try {
-                    block = bf.parseFromInput(blockName, context);
-                } catch (Exception ex) {
-                    //sender.sendMessage(ChatColor.RED + "Unknown block \"" + blockName + "\".");
-                    sender.sendMessage(ChatColor.RED + ex.getMessage());
-                    return;
-                }
-                
-                EditSession s = f.getEditSession(weWorld, 1000000);
-
-                ProtectedRegion floor = plot.getFloor();
-                Vector p1 = new Vector(floor.getMaximumPoint().getBlockX(),
-                                       floor.getMaximumPoint().getBlockY(),
-                                       floor.getMaximumPoint().getBlockZ());
-                Vector p2 = new Vector(floor.getMinimumPoint().getBlockX(),
-                                       floor.getMinimumPoint().getBlockY(),
-                                       floor.getMinimumPoint().getBlockZ());
-                CuboidRegion cr = new CuboidRegion(weWorld, p1, p2);
-
-                s.setBlocks(cr, block);
-
-                /*
-                WorldEditPlugin wep = (WorldEditPlugin)getServer().getPluginManager().getPlugin("WorldEdit");
-                WorldEdit we = wep.getWorldEdit();
-                com.sk89q.worldedit.LocalPlayer lp = wep.wrapPlayer(player);
-                Vector p1 = new Vector(plot.getMaximumPoint().getBlockX(),
-                                       plot.getMaximumPoint().getBlockY(),
-                                       plot.getMaximumPoint().getBlockZ());
-                Vector p2 = new Vector(plot.getMinimumPoint().getBlockX(),
-                                       plot.getMinimumPoint().getBlockY(),
-                                       plot.getMinimumPoint().getBlockZ());
-                CuboidRegion cr = new CuboidRegion(new BukkitWorld(player.getWorld()), p1, p2);
-                EditSession es = new EditSession(new BukkitWorld(player.getWorld()), cr.getArea());
-                es.setBlocks(cr, we.getBlock(lp, "air", true));
-                */
-
+                for(x = minx; x <= maxx; x++) {
+                for(y = miny; y <= maxy; y++) {
+                for(z = minz; z <= maxz; z++) {
+                    BlockData orgData = null;
+                    //getLogger().info(String.format("processing %d, %d, %d", minx, miny, minz));
+                    Block b = w.getBlockAt(x, y, z);
+                    if(_blocksHub != null) {
+                        orgData = new BlockData(b.getTypeId(), b.getData());
+                    }
+                    b.setType(material);
+                    if(_blocksHub != null) {
+                        Vector pos = new Vector(x, y, z);
+                        String owner = this.getName();
+                        BlockData newData = new BlockData(b.getTypeId(), b.getData());
+                        _blocksHub.logBlock(pos, owner, w.getName(), orgData, newData);
+                    }
+                }}}
                 foundPlot = true;
                 break;
             }

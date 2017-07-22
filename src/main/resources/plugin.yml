@@ -3,8 +3,8 @@ version: ${version}
 description: ${description}
 website: ${url}
 database: false
-depend: [WorldGuard,WorldEdit]
-softdepend: [WGRegionEvents]
+depend: [WorldGuard]
+softdepend: [WGRegionEvents,BlocksHub]
 author: [Challenger2]
 main: nu.nerd.SpeedBuildArena.SBAPlugin
 
