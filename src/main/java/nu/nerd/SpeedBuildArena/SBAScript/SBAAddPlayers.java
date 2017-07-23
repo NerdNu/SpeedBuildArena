@@ -2,8 +2,6 @@ package nu.nerd.SpeedBuildArena.SBAScript;
 
 import java.util.List;
 
-import org.bukkit.Server;
-import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import com.sk89q.worldedit.Vector;
@@ -32,9 +30,6 @@ public class SBAAddPlayers implements SBACommand {
         //WorldGuardPlugin wgp = context.getPlugin().getWorldGuard();
         ProtectedRegion arena = context.getArenaPlot();
         List<SBAPlot> plots = context.getPlots();
-        
-        Server server = context.getPlugin().getServer();
-        ConsoleCommandSender console = server.getConsoleSender();
         String worldName = context.getPlugin().getSBAConfig().WORLD_NAME;
         
         // Is there a better way than to test every player with every plot?
@@ -52,11 +47,11 @@ public class SBAAddPlayers implements SBACommand {
                     ProtectedRegion rplot = plot.getPlot();
                     if(rplot.contains(pos)) {
                         if(config.ADD_OWNERS) {
-                            server.dispatchCommand(console, String.format("region addowner %s %s -w %s", rplot.getId(), player.getName(), worldName));
-                            //rplot.getOwners().addPlayer(wgp.wrapPlayer(player));
+                            context.dispatchCommand(String.format("region addowner %s %s -w %s", rplot.getId(), player.getName(), worldName));
+                            //rplot.getOwners().addPlayer(wgp.wrapPlayer(player)); // this does not update WG player cache
                         } else {
-                            server.dispatchCommand(console, String.format("region addmember %s %s -w %s", rplot.getId(), player.getName(), worldName));
-                            //rplot.getMembers().addPlayer(wgp.wrapPlayer(player));
+                            context.dispatchCommand(String.format("region addmember %s %s -w %s", rplot.getId(), player.getName(), worldName));
+                            //rplot.getMembers().addPlayer(wgp.wrapPlayer(player)); // this does not update WG player cache
                         }
                     }
                 }
@@ -64,3 +59,4 @@ public class SBAAddPlayers implements SBACommand {
         }
     }
 }
+

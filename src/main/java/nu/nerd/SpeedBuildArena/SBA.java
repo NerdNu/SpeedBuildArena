@@ -114,13 +114,11 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	 * Remove all owners and members from all sba plots
 	 */
 	public void wipePlots() {
-	    //Server server = _sba.getServer();
-        //ConsoleCommandSender console = server.getConsoleSender();
 	    //String worldName = _config.WORLD_NAME;
         try {
             for(SBAPlot plot : _plots) {
-                //server.dispatchCommand(console, String.format("rg removeowner %s -a -w %s", plot.getPlot().getId(), worldName));
-                //server.dispatchCommand(console, String.format("rg removemember %s -a -w %s", plot.getPlot().getId(), worldName));
+                //dispatchCommand(String.format("rg removeowner %s -a -w %s", plot.getPlot().getId(), worldName));
+                //dispatchCommand(String.format("rg removemember %s -a -w %s", plot.getPlot().getId(), worldName));
                 plot.getPlot().getOwners().clear();
                 plot.getPlot().getMembers().clear();
             }
@@ -273,7 +271,18 @@ public class SBA implements AutoCloseable, Runnable, Listener {
         return _arena;
     }
     
-    
+    /**
+     * Dispatch a command as the console. The command will
+     * be logged to console.
+     * @param context
+     * @param cmd
+     */
+    public void dispatchCommand(String cmd) {
+        _sba.getLogger().info("/" + cmd);
+        _sba.getServer().dispatchCommand(
+                _sba.getServer().getConsoleSender(),
+                cmd);
+    }
     
     /**
      * Start running the boss bar
