@@ -17,6 +17,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
+import com.sk89q.worldedit.extension.factory.BlockFactory;
+import com.sk89q.worldedit.extension.input.ParserContext;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 
 import net.md_5.bungee.api.ChatColor;
@@ -38,10 +43,11 @@ public class SBAPlugin extends JavaPlugin {
 	
 	private WorldGuardPlugin _wg = null;
 	private IBlocksHubApi _blocksHub = null;
+	private WorldEdit _we = null;
+	private WorldEditPlugin _wep = null;
 	private SBAConfig _config;
 	private SBA _speedBuild = null;
 
-	
 	/**
 	 * Called when the plugin is first enabled
 	 */
@@ -59,20 +65,21 @@ public class SBAPlugin extends JavaPlugin {
 			return;
 		}
 		_wg = (WorldGuardPlugin)p;
-		
+		getLogger().info("Loaded WorldGuard plugin");
+
 		// Load blocks hub
 		p = getServer().getPluginManager().getPlugin("BlocksHub");
-		if (p == null) {
-		    getLogger().info("Blocks Hub plugin is null");
-		} else {
-		    getLogger().info("Blocks hub pluging is type " + p.getName() + ", " + p.getClass().getName());
-		}
 		if (p != null && (p instanceof org.primesoft.blockshub.BlocksHubBukkit)) {
-		    getLogger().info("Loaded BlocksHub plugin");
 		    org.primesoft.blockshub.BlocksHubBukkit bh = (org.primesoft.blockshub.BlocksHubBukkit)p;
 		    _blocksHub = (IBlocksHubApi)bh.getApi();
-		} else {
-		    getLogger().info("BlocksHub not loaded");
+		    getLogger().info("Loaded BlocksHub plugin");
+		}
+		
+		p = getServer().getPluginManager().getPlugin("WorldEdit");
+		if (p != null && (p instanceof WorldEditPlugin)) {
+		    _wep = (WorldEditPlugin)p;
+		    _we = _wep.getWorldEdit();
+		    getLogger().info("Loaded WorldEdit plugin");
 		}
 
 		saveDefaultConfig();
@@ -99,6 +106,9 @@ public class SBAPlugin extends JavaPlugin {
 	    }
 	    _config = null;
 		_wg = null;
+		_blocksHub = null;
+		_we = null;
+		_wep = null;
 	}
 	
 	
@@ -233,7 +243,8 @@ public class SBAPlugin extends JavaPlugin {
 	 * @throws WorldEditException 
 	 * @throws MaxChangedBlocksException 
 	 */
-	private void cmdSetFloor(CommandSender sender, String[] args) {
+	@SuppressWarnings("deprecation")
+    private void cmdSetFloor(CommandSender sender, String[] args) {
 
 	    if (!(sender instanceof Player)) {
 	        sender.sendMessage("Silly Console. Trix are for kids");
@@ -253,15 +264,41 @@ public class SBAPlugin extends JavaPlugin {
 	        return;
 	    }
 	    String blockName = args[0];
-	    
-	    // TODO: Use WE to lookup block names. It knows about the WE blacklist.
-	    Material material;
-	    material = Material.matchMaterial(blockName);
-	    if (material == null) {
-	        sender.sendMessage(ChatColor.RED + "Cannot find item: " + blockName);
-	        return;
+	    int blockId = 0;
+	    int blockData = 0;
+
+	    if (_wep != null && _we != null) {
+	        // If WE is loaded, use WE to lookup the block name and use it's black list
+    	    com.sk89q.worldedit.entity.Player wePlayer = _wep.wrapPlayer(player);
+    	    com.sk89q.worldedit.world.World weWorld = wePlayer.getWorld();
+    	    BlockFactory bf = _we.getBlockFactory();
+    	    ParserContext context = new ParserContext();
+    	    context.setActor(wePlayer);
+    	    context.setWorld(weWorld);
+    	    context.setSession(_we.getSessionManager().get(wePlayer));
+    	    context.setRestricted(true);
+    	    context.setPreferringWildcard(false);
+    	    BaseBlock block = null;
+    	    try {
+    	        block = bf.parseFromInput(blockName, context);
+    	    } catch (Exception ex) {
+    	        sender.sendMessage(ChatColor.RED + ex.getMessage());
+    	        return;
+    	    }
+    	    blockId = block.getId();
+    	    blockData = (byte)block.getData();
+	    } else {
+	        // Fall back and use direct lookup. No black list.
+    	    Material material;
+    	    material = Material.matchMaterial(blockName);
+    	    if (material == null) {
+    	        sender.sendMessage(ChatColor.RED + "Cannot find item: " + blockName);
+    	        return;
+    	    }
+    	    blockId = material.getId();
+    	    blockData = 0;
 	    }
-	    
+
 	    // Make sure the player is a participant
 	    List<SBAPlot> plots = _speedBuild.getPlots();
         int x, y, z;
@@ -298,7 +335,8 @@ public class SBAPlugin extends JavaPlugin {
                     if(_blocksHub != null) {
                         orgData = new BlockData(b.getTypeId(), b.getData());
                     }
-                    b.setType(material);
+                    b.setTypeId(blockId);
+                    b.setData((byte)blockData);
                     if(_blocksHub != null) {
                         Vector pos = new Vector(x, y, z);
                         String owner = this.getName();

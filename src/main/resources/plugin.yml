@@ -4,7 +4,7 @@ description: ${description}
 website: ${url}
 database: false
 depend: [WorldGuard]
-softdepend: [WGRegionEvents,BlocksHub]
+softdepend: [WGRegionEvents,BlocksHub,WorldEdit]
 author: [Challenger2]
 main: nu.nerd.SpeedBuildArena.SBAPlugin
 
