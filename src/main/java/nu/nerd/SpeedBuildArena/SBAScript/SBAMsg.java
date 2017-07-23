@@ -16,10 +16,12 @@ public class SBAMsg implements SBACommand {
     public SBAMsg(String msg) {
         _msg = ChatColor.translateAlternateColorCodes('&', msg);
     }
-    
+
     /**
      * Broadcast a message to everyone
-     * @param context SpeedBuild object
+     * 
+     * @param context
+     *            SpeedBuild object
      */
     @Override
     public void execute(SBA context) {

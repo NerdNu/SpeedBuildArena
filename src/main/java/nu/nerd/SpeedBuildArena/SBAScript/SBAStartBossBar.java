@@ -14,10 +14,12 @@ public class SBAStartBossBar implements SBACommand {
     public SBAStartBossBar(String args) {
         _duration = Long.parseLong(args);
     }
-    
+
     /**
      * Broadcast a message to everyone
-     * @param context SpeedBuild object
+     * 
+     * @param context
+     *            SpeedBuild object
      */
     @Override
     public void execute(SBA context) {
