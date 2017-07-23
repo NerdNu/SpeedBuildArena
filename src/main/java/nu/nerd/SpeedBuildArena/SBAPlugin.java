@@ -151,7 +151,7 @@ public class SBAPlugin extends JavaPlugin {
 		    cmdSetFloor(sender, args);
 		    } catch (Exception ex) {
 		        printStackTrace(ex);
-		        // TODO: Fixme
+		        sender.sendMessage(ChatColor.RED + "An unexpected error occurd while running this command.");
 		    }
 		    break;
 		case "reload":

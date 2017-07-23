@@ -8,6 +8,7 @@ import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+//import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -109,23 +110,32 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	    throw new Exception(msg);
 	}
 	
+	/**
+	 * Remove all owners and members from all sba plots
+	 */
+	public void wipePlots() {
+	    //Server server = _sba.getServer();
+        //ConsoleCommandSender console = server.getConsoleSender();
+	    //String worldName = _config.WORLD_NAME;
+        try {
+            for(SBAPlot plot : _plots) {
+                //server.dispatchCommand(console, String.format("rg removeowner %s -a -w %s", plot.getPlot().getId(), worldName));
+                //server.dispatchCommand(console, String.format("rg removemember %s -a -w %s", plot.getPlot().getId(), worldName));
+                plot.getPlot().getOwners().clear();
+                plot.getPlot().getMembers().clear();
+            }
+        } catch (Throwable ex) {
+            _sba.printStackTrace(ex);
+        }
+	}
 	
 	/**
 	 * Shutdown anything that _really_ needs to be shutdown
 	 */
 	@Override
 	public void close() {
-	    // Wipe the plots
-	    try {
-            for(SBAPlot plot : _plots) {
-                plot.getPlot().getOwners().clear();
-                plot.getPlot().getMembers().clear();
-            }
-	    } catch (Throwable ex) {
-	        _sba.printStackTrace(ex);
-	    }
-
 	    _running = false;
+	    wipePlots();
 	    stopBossBar();
 	    if(_task != null) {
 	        _task.cancel();
@@ -133,6 +143,10 @@ public class SBA implements AutoCloseable, Runnable, Listener {
 	    }
 		_sba.onSpeedBuildFinished(); // This deletes self reference so we can be GCed
 		_sba = null;
+	    _config = null;
+	    _wgrm = null;
+	    _plots = null;
+	    _arena = null;
 	}
 
 	

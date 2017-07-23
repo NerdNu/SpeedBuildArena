@@ -2,10 +2,12 @@ package nu.nerd.SpeedBuildArena.SBAScript;
 
 import java.util.List;
 
+import org.bukkit.Server;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 
 import com.sk89q.worldedit.Vector;
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+//import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
 import nu.nerd.SpeedBuildArena.SBA;
@@ -27,9 +29,13 @@ public class SBAAddPlayers implements SBACommand {
     @Override
     public void execute(SBA context) {
         SBAConfig config = context.getPlugin().getSBAConfig();
-        WorldGuardPlugin wgp = context.getPlugin().getWorldGuard();
+        //WorldGuardPlugin wgp = context.getPlugin().getWorldGuard();
         ProtectedRegion arena = context.getArenaPlot();
         List<SBAPlot> plots = context.getPlots();
+        
+        Server server = context.getPlugin().getServer();
+        ConsoleCommandSender console = server.getConsoleSender();
+        String worldName = context.getPlugin().getSBAConfig().WORLD_NAME;
         
         // Is there a better way than to test every player with every plot?
         for(Player player : context.getServer().getOnlinePlayers()) {
@@ -38,7 +44,7 @@ public class SBAAddPlayers implements SBACommand {
             y = (int)player.getLocation().getY();
             z = (int)player.getLocation().getZ();
             Vector pos = new Vector(x, y, z);
-            
+
             // Don't consider players outside the arena
             // If your not in the arena, you can't be in a plot, right?
             if(arena.contains(pos)) {
@@ -46,9 +52,11 @@ public class SBAAddPlayers implements SBACommand {
                     ProtectedRegion rplot = plot.getPlot();
                     if(rplot.contains(pos)) {
                         if(config.ADD_OWNERS) {
-                            rplot.getOwners().addPlayer(wgp.wrapPlayer(player));
+                            server.dispatchCommand(console, String.format("region addowner %s %s -w %s", rplot.getId(), player.getName(), worldName));
+                            //rplot.getOwners().addPlayer(wgp.wrapPlayer(player));
                         } else {
-                            rplot.getMembers().addPlayer(wgp.wrapPlayer(player));
+                            server.dispatchCommand(console, String.format("region addmember %s %s -w %s", rplot.getId(), player.getName(), worldName));
+                            //rplot.getMembers().addPlayer(wgp.wrapPlayer(player));
                         }
                     }
                 }
