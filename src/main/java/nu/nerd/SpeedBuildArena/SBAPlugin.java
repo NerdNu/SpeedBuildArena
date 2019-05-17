@@ -5,23 +5,29 @@ import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 
-import org.primesoft.blockshub.IBlocksHubApi;
-import org.primesoft.blockshub.api.BlockData;
-import org.primesoft.blockshub.api.Vector;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.primesoft.blockshub.IBlocksHubApi;
+import org.primesoft.blockshub.api.IBlockData;
+import org.primesoft.blockshub.api.IPlayer;
+import org.primesoft.blockshub.api.IWorld;
+import org.primesoft.blockshub.api.platform.BukkitBlockData;
 
+import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.blocks.BaseBlock;
+import com.sk89q.worldedit.WorldEditException;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.extension.factory.BlockFactory;
 import com.sk89q.worldedit.extension.input.ParserContext;
+import com.sk89q.worldedit.world.block.BlockStateHolder;
 import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
 
 import net.md_5.bungee.api.ChatColor;
@@ -67,9 +73,9 @@ public class SBAPlugin extends JavaPlugin {
         // Load blocks hub
         p = getServer().getPluginManager().getPlugin("BlocksHub");
         if (p != null
-                && (p instanceof org.primesoft.blockshub.BlocksHubBukkit)) {
+            && (p instanceof org.primesoft.blockshub.BlocksHubBukkit)) {
             org.primesoft.blockshub.BlocksHubBukkit bh = (org.primesoft.blockshub.BlocksHubBukkit) p;
-            _blocksHub = (IBlocksHubApi) bh.getApi();
+            _blocksHub = bh.getApi();
             getLogger().info("Loaded BlocksHub plugin");
         }
 
@@ -111,18 +117,14 @@ public class SBAPlugin extends JavaPlugin {
     /**
      * Process user commands.
      * 
-     * @param sender
-     *            Command origin
-     * @param command
-     *            The command to be performed. Includes all yml meta data.
-     * @param label
-     *            The exact name of the command the user typed in
-     * @param args
-     *            Command arguments
+     * @param sender Command origin
+     * @param command The command to be performed. Includes all yml meta data.
+     * @param label The exact name of the command the user typed in
+     * @param args Command arguments
      */
     @Override
     public boolean onCommand(CommandSender sender, Command command,
-            String label, String[] args) {
+                             String label, String[] args) {
 
         // Check Command
         if (!command.getName().equalsIgnoreCase("speedbuildarena")) {
@@ -152,16 +154,14 @@ public class SBAPlugin extends JavaPlugin {
                 cmdSetFloor(sender, args);
             } catch (Exception ex) {
                 printStackTrace(ex);
-                sender.sendMessage(ChatColor.RED
-                        + "An unexpected error occurd while running this command.");
+                sender.sendMessage(ChatColor.RED + "An unexpected error occurd while running this command.");
             }
             break;
         case "reload":
             reloadSBAConfig(sender);
             break;
         default:
-            sender.sendMessage(
-                    ChatColor.RED + "Invalid command \"" + subcmd + "\".");
+            sender.sendMessage(ChatColor.RED + "Invalid command \"" + subcmd + "\".");
             printUsage(sender);
             return false;
         }
@@ -174,8 +174,7 @@ public class SBAPlugin extends JavaPlugin {
      */
     public void reloadSBAConfig(CommandSender sender) {
         if (!sender.hasPermission("speedbuildarena.admin")) {
-            sender.sendMessage(ChatColor.RED
-                    + "You do not have permission to run this command");
+            sender.sendMessage(ChatColor.RED + "You do not have permission to run this command");
             return;
         }
 
@@ -193,23 +192,18 @@ public class SBAPlugin extends JavaPlugin {
     /**
      * Start a speed build event.
      * 
-     * @param sender
-     *            Command Sender
-     * @param args
-     *            Command arguments
+     * @param sender Command Sender
+     * @param args Command arguments
      */
     private void cmdStart(CommandSender sender, String[] args) {
         if (!sender.hasPermission("speedbuildarena.admin")) {
-            sender.sendMessage(ChatColor.RED
-                    + "You do not have permission to run this command");
+            sender.sendMessage(ChatColor.RED + "You do not have permission to run this command");
             return;
         }
 
         if (_speedBuild != null) {
-            sender.sendMessage(
-                    ChatColor.RED + "ERROR: Speed build is already running.");
-            sender.sendMessage(ChatColor.RED
-                    + "Did you mean to use /SpeedBuildArena abort");
+            sender.sendMessage(ChatColor.RED + "ERROR: Speed build is already running.");
+            sender.sendMessage(ChatColor.RED + "Did you mean to use /SpeedBuildArena abort");
             return;
         }
 
@@ -224,15 +218,12 @@ public class SBAPlugin extends JavaPlugin {
     /**
      * Abort a speed build event.
      * 
-     * @param sender
-     *            Command Sender
-     * @param args
-     *            Command arguments
+     * @param sender Command Sender
+     * @param args Command arguments
      */
     private void cmdAbort(CommandSender sender, String[] args) {
         if (!sender.hasPermission("speedbuildarena.admin")) {
-            sender.sendMessage(ChatColor.RED
-                    + "You do not have permission to run this command");
+            sender.sendMessage(ChatColor.RED + "You do not have permission to run this command");
             return;
         }
 
@@ -248,10 +239,8 @@ public class SBAPlugin extends JavaPlugin {
     /**
      * Set the floor area of a players arena
      * 
-     * @param sender
-     *            The player
-     * @param args
-     *            The block type to set the floor too
+     * @param sender The player
+     * @param args The block type to set the floor too
      * @throws WorldEditException
      * @throws MaxChangedBlocksException
      */
@@ -267,8 +256,7 @@ public class SBAPlugin extends JavaPlugin {
 
         // Ensure that an event is in progress
         if (_speedBuild == null) {
-            sender.sendMessage(ChatColor.RED
-                    + "A Speed Build event is not in progress. Sorry :(");
+            sender.sendMessage(ChatColor.RED + "A Speed Build event is not in progress. Sorry :(");
             return;
         }
 
@@ -277,14 +265,12 @@ public class SBAPlugin extends JavaPlugin {
             return;
         }
         String blockName = args[0];
-        int blockId = 0;
-        int blockData = 0;
 
+        BlockData newData;
         if (_wep != null && _we != null) {
             // If WE is loaded, use WE to lookup the block name and use it's
             // black list
-            com.sk89q.worldedit.entity.Player wePlayer = _wep
-                    .wrapPlayer(player);
+            com.sk89q.worldedit.entity.Player wePlayer = _wep.wrapPlayer(player);
             com.sk89q.worldedit.world.World weWorld = wePlayer.getWorld();
             BlockFactory bf = _we.getBlockFactory();
             ParserContext context = new ParserContext();
@@ -293,43 +279,37 @@ public class SBAPlugin extends JavaPlugin {
             context.setSession(_we.getSessionManager().get(wePlayer));
             context.setRestricted(true);
             context.setPreferringWildcard(false);
-            BaseBlock block = null;
+            BlockStateHolder block = null;
             try {
                 block = bf.parseFromInput(blockName, context);
             } catch (Exception ex) {
                 sender.sendMessage(ChatColor.RED + ex.getMessage());
                 return;
             }
-            blockId = block.getId();
-            blockData = (byte) block.getData();
+            newData = BukkitAdapter.adapt(block);
         } else {
             // Fall back and use direct lookup. No black list.
-            Material material;
-            material = Material.matchMaterial(blockName);
+            Material material = Material.matchMaterial(blockName);
             if (material == null) {
-                sender.sendMessage(
-                        ChatColor.RED + "Cannot find item: " + blockName);
+                sender.sendMessage(ChatColor.RED + "Cannot find item: " + blockName);
                 return;
             }
-            blockId = material.getId();
-            blockData = 0;
+            newData = material.createBlockData();
         }
+        IBlockData newBlocksHubData = new BukkitBlockData(newData);
 
         // Make sure the player is a participant
         List<SBAPlot> plots = _speedBuild.getPlots();
-        int x, y, z;
-        x = (int) player.getLocation().getX();
-        y = (int) player.getLocation().getY();
-        z = (int) player.getLocation().getZ();
+        int x = player.getLocation().getBlockX();
+        int y = player.getLocation().getBlockY();
+        int z = player.getLocation().getBlockZ();
         boolean foundPlot = false;
         for (SBAPlot plot : plots) {
             if (plot.getPlot().contains(x, y, z)) {
                 // Make sure the player is registered with this plot
                 if (!(plot.getPlot().getOwners().contains(player.getUniqueId())
-                        || plot.getPlot().getMembers()
-                                .contains(player.getUniqueId()))) {
-                    sender.sendMessage(ChatColor.RED
-                            + "Get off my lawn, you whippersnapper! Find your own plot!");
+                      || plot.getPlot().getMembers().contains(player.getUniqueId()))) {
+                    sender.sendMessage(ChatColor.RED + "Get off my lawn, you whippersnapper! Find your own plot!");
                     return;
                 }
 
@@ -348,23 +328,18 @@ public class SBAPlugin extends JavaPlugin {
                 for (x = minx; x <= maxx; x++) {
                     for (y = miny; y <= maxy; y++) {
                         for (z = minz; z <= maxz; z++) {
-                            BlockData orgData = null;
+                            IBlockData orgBlocksHubData = null;
                             // getLogger().info(String.format("processing %d,
                             // %d, %d", minx, miny, minz));
                             Block b = w.getBlockAt(x, y, z);
                             if (_blocksHub != null) {
-                                orgData = new BlockData(b.getTypeId(),
-                                        b.getData());
+                                orgBlocksHubData = new BukkitBlockData(b.getBlockData());
                             }
-                            b.setTypeId(blockId);
-                            b.setData((byte) blockData);
+                            b.setBlockData(newData);
                             if (_blocksHub != null) {
-                                Vector pos = new Vector(x, y, z);
-                                String owner = this.getName();
-                                BlockData newData = new BlockData(b.getTypeId(),
-                                        b.getData());
-                                _blocksHub.logBlock(pos, owner, w.getName(),
-                                        orgData, newData);
+                                IPlayer owner = _blocksHub.getPlayer(this.getName());
+                                IWorld world = _blocksHub.getWorld(w.getUID());
+                                _blocksHub.logBlock(owner, world, x, y, z, orgBlocksHubData, newBlocksHubData);
                             }
                         }
                     }
@@ -374,8 +349,7 @@ public class SBAPlugin extends JavaPlugin {
             }
         }
         if (!foundPlot) {
-            sender.sendMessage(
-                    ChatColor.RED + "You must be standing in your plot");
+            sender.sendMessage(ChatColor.RED + "You must be standing in your plot");
             return;
         }
 
@@ -464,8 +438,7 @@ public class SBAPlugin extends JavaPlugin {
     /**
      * Print a stack trace
      * 
-     * @param e
-     *            Exception
+     * @param e Exception
      */
     public void printStackTrace(Throwable e) {
         StringWriter sw = new StringWriter();

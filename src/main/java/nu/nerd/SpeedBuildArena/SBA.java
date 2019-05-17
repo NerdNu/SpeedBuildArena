@@ -18,6 +18,8 @@ import org.bukkit.scheduler.BukkitTask;
 
 import com.mewin.WGRegionEvents.events.RegionEnteredEvent;
 import com.mewin.WGRegionEvents.events.RegionLeftEvent;
+import com.sk89q.worldedit.bukkit.BukkitWorld;
+import com.sk89q.worldguard.WorldGuard;
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
 
@@ -40,7 +42,7 @@ public class SBA implements AutoCloseable, Runnable, Listener {
     private ProtectedRegion _arena;
 
     private long _nextCommandTime; // Time to run the next SBA command
-    private List<SBACommand> _script; // Array of SBA commands
+    private final List<SBACommand> _script; // Array of SBA commands
     private int _commandIndex = 0; // Instruction Pointer
 
     private BossBar _bossBar;
@@ -73,11 +75,9 @@ public class SBA implements AutoCloseable, Runnable, Listener {
         }
 
         // Get the region manager for the world
-        _wgrm = _sba.getWorldGuard().getRegionManager(world);
+        _wgrm = WorldGuard.getInstance().getPlatform().getRegionContainer().get(new BukkitWorld(world));
         if (_wgrm == null) {
-            logNthrow(
-                    "Failed to get World guard RegionManager for world: \"%s\".",
-                    world);
+            logNthrow("Failed to get World guard RegionManager for world: \"%s\".", world);
         }
 
         // Get the arena plot
@@ -101,12 +101,9 @@ public class SBA implements AutoCloseable, Runnable, Listener {
     /**
      * Log and throw an exception
      * 
-     * @param format
-     *            Format String
-     * @param args
-     *            Arguments for the format string
-     * @throws Exception
-     *             Always throws an exception
+     * @param format Format String
+     * @param args Arguments for the format string
+     * @throws Exception Always throws an exception
      */
     private void logNthrow(String format, Object... args) throws Exception {
         String msg = String.format(format, args);
@@ -167,10 +164,9 @@ public class SBA implements AutoCloseable, Runnable, Listener {
                 stopBossBar();
             } else if (now > _bossBarNextUpdateTime) {
                 _bossBarNextUpdateTime += 1000;
-                _bossBar.setProgress(
-                        1.0 - ((double) now - (double) _bossBarStartTime)
-                                / ((double) _bossBarStopTime
-                                        - (double) _bossBarStartTime));
+                _bossBar.setProgress(1.0 - ((double) now - (double) _bossBarStartTime)
+                                           / ((double) _bossBarStopTime
+                                              - (double) _bossBarStartTime));
                 updateBossTitle(_bossBarStopTime - now);
             }
         }
@@ -192,8 +188,7 @@ public class SBA implements AutoCloseable, Runnable, Listener {
     /**
      * Add players to the boss bar if they enter the Speed Build Arena
      * 
-     * @param event
-     *            The Event
+     * @param event The Event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerEnteredRegion(RegionEnteredEvent event) {
@@ -205,8 +200,7 @@ public class SBA implements AutoCloseable, Runnable, Listener {
     /**
      * Remove players from the boss bar if they leave the Speed Build Arena
      * 
-     * @param event
-     *            The Event
+     * @param event The Event
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerLeftRegion(RegionLeftEvent event) {
@@ -286,20 +280,17 @@ public class SBA implements AutoCloseable, Runnable, Listener {
      */
     public void dispatchCommand(String cmd) {
         _sba.getLogger().info("/" + cmd);
-        _sba.getServer().dispatchCommand(_sba.getServer().getConsoleSender(),
-                cmd);
+        _sba.getServer().dispatchCommand(_sba.getServer().getConsoleSender(), cmd);
     }
 
     /**
      * Start running the boss bar
      * 
-     * @param duration
-     *            Time to run the boss bar in milliseconds
+     * @param duration Time to run the boss bar in milliseconds
      */
     public void startBossTimer(long duration) {
         if (_bossBar == null) {
-            _bossBar = _sba.getServer().createBossBar("", BarColor.BLUE,
-                    BarStyle.SOLID);
+            _bossBar = _sba.getServer().createBossBar("", BarColor.BLUE, BarStyle.SOLID);
             _bossBar.setProgress(1.0);
             _bossBar.setVisible(false);
             updateBossTitle(duration);
@@ -355,8 +346,7 @@ public class SBA implements AutoCloseable, Runnable, Listener {
             long seconds = acc % 60;
             long minutes = acc / 60;
 
-            _bossBar.setTitle(
-                    String.format("Speed Build %02d:%02d", minutes, seconds));
+            _bossBar.setTitle(String.format("Speed Build %02d:%02d", minutes, seconds));
         }
     }
 
