@@ -14,11 +14,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.primesoft.blockshub.IBlocksHubApi;
-import org.primesoft.blockshub.api.IBlockData;
-import org.primesoft.blockshub.api.IPlayer;
-import org.primesoft.blockshub.api.IWorld;
-import org.primesoft.blockshub.api.platform.BukkitBlockData;
 
 import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.WorldEdit;
@@ -45,7 +40,6 @@ import net.md_5.bungee.api.ChatColor;
 public class SBAPlugin extends JavaPlugin {
 
     private WorldGuardPlugin _wg = null;
-    private IBlocksHubApi _blocksHub = null;
     private WorldEdit _we = null;
     private WorldEditPlugin _wep = null;
     private SBAConfig _config;
@@ -69,15 +63,6 @@ public class SBAPlugin extends JavaPlugin {
         }
         _wg = (WorldGuardPlugin) p;
         getLogger().info("Loaded WorldGuard plugin");
-
-        // Load blocks hub
-        p = getServer().getPluginManager().getPlugin("BlocksHub");
-        if (p != null
-            && (p instanceof org.primesoft.blockshub.BlocksHubBukkit)) {
-            org.primesoft.blockshub.BlocksHubBukkit bh = (org.primesoft.blockshub.BlocksHubBukkit) p;
-            _blocksHub = bh.getApi();
-            getLogger().info("Loaded BlocksHub plugin");
-        }
 
         p = getServer().getPluginManager().getPlugin("WorldEdit");
         if (p != null && (p instanceof WorldEditPlugin)) {
@@ -109,7 +94,6 @@ public class SBAPlugin extends JavaPlugin {
         }
         _config = null;
         _wg = null;
-        _blocksHub = null;
         _we = null;
         _wep = null;
     }
@@ -241,118 +225,17 @@ public class SBAPlugin extends JavaPlugin {
      * 
      * @param sender The player
      * @param args The block type to set the floor too
-     * @throws WorldEditException
-     * @throws MaxChangedBlocksException
      */
-    @SuppressWarnings("deprecation")
     private void cmdSetFloor(CommandSender sender, String[] args) {
-
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Silly Console. Trix are for kids");
-            return;
+        int num = (int)(Math.random()*4.0);
+        String msg;
+        switch (num) {
+            case 0: msg = "This command is down for repairs."; break;
+            case 1: msg = "Try again later."; break;
+            case 2: msg = "I can't do that Dave."; break;
+            default: msg = "This command is down. Please try again."; break;
         }
-
-        Player player = (Player) sender;
-
-        // Ensure that an event is in progress
-        if (_speedBuild == null) {
-            sender.sendMessage(ChatColor.RED + "A Speed Build event is not in progress. Sorry :(");
-            return;
-        }
-
-        if (args.length != 1) {
-            printSetFloorUsage(sender);
-            return;
-        }
-        String blockName = args[0];
-
-        BlockData newData;
-        if (_wep != null && _we != null) {
-            // If WE is loaded, use WE to lookup the block name and use it's
-            // black list
-            com.sk89q.worldedit.entity.Player wePlayer = _wep.wrapPlayer(player);
-            com.sk89q.worldedit.world.World weWorld = wePlayer.getWorld();
-            BlockFactory bf = _we.getBlockFactory();
-            ParserContext context = new ParserContext();
-            context.setActor(wePlayer);
-            context.setWorld(weWorld);
-            context.setSession(_we.getSessionManager().get(wePlayer));
-            context.setRestricted(true);
-            context.setPreferringWildcard(false);
-            BlockStateHolder block = null;
-            try {
-                block = bf.parseFromInput(blockName, context);
-            } catch (Exception ex) {
-                sender.sendMessage(ChatColor.RED + ex.getMessage());
-                return;
-            }
-            newData = BukkitAdapter.adapt(block);
-        } else {
-            // Fall back and use direct lookup. No black list.
-            Material material = Material.matchMaterial(blockName);
-            if (material == null) {
-                sender.sendMessage(ChatColor.RED + "Cannot find item: " + blockName);
-                return;
-            }
-            newData = material.createBlockData();
-        }
-        IBlockData newBlocksHubData = new BukkitBlockData(newData);
-
-        // Make sure the player is a participant
-        List<SBAPlot> plots = _speedBuild.getPlots();
-        int x = player.getLocation().getBlockX();
-        int y = player.getLocation().getBlockY();
-        int z = player.getLocation().getBlockZ();
-        boolean foundPlot = false;
-        for (SBAPlot plot : plots) {
-            if (plot.getPlot().contains(x, y, z)) {
-                // Make sure the player is registered with this plot
-                if (!(plot.getPlot().getOwners().contains(player.getUniqueId())
-                      || plot.getPlot().getMembers().contains(player.getUniqueId()))) {
-                    sender.sendMessage(ChatColor.RED + "Get off my lawn, you whippersnapper! Find your own plot!");
-                    return;
-                }
-
-                // for each block
-                int minx = plot.getFloor().getMinimumPoint().getBlockX();
-                int miny = plot.getFloor().getMinimumPoint().getBlockY();
-                int minz = plot.getFloor().getMinimumPoint().getBlockZ();
-                int maxx = plot.getFloor().getMaximumPoint().getBlockX();
-                int maxy = plot.getFloor().getMaximumPoint().getBlockY();
-                int maxz = plot.getFloor().getMaximumPoint().getBlockZ();
-                World w = player.getWorld();
-
-                // getLogger().info(String.format("%d, %d, %d, %d, %d, %d",
-                // minx, miny, minz, maxx, maxy, maxz));
-
-                for (x = minx; x <= maxx; x++) {
-                    for (y = miny; y <= maxy; y++) {
-                        for (z = minz; z <= maxz; z++) {
-                            IBlockData orgBlocksHubData = null;
-                            // getLogger().info(String.format("processing %d,
-                            // %d, %d", minx, miny, minz));
-                            Block b = w.getBlockAt(x, y, z);
-                            if (_blocksHub != null) {
-                                orgBlocksHubData = new BukkitBlockData(b.getBlockData());
-                            }
-                            b.setBlockData(newData);
-                            if (_blocksHub != null) {
-                                IPlayer owner = _blocksHub.getPlayer(this.getName());
-                                IWorld world = _blocksHub.getWorld(w.getUID());
-                                _blocksHub.logBlock(owner, world, x, y, z, orgBlocksHubData, newBlocksHubData);
-                            }
-                        }
-                    }
-                }
-                foundPlot = true;
-                break;
-            }
-        }
-        if (!foundPlot) {
-            sender.sendMessage(ChatColor.RED + "You must be standing in your plot");
-            return;
-        }
-
+        sender.sendMessage(ChatColor.RED + msg);
     }
 
     /**
