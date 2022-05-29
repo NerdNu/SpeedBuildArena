@@ -15,15 +15,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import com.sk89q.worldedit.MaxChangedBlocksException;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.bukkit.WorldEditPlugin;
-import com.sk89q.worldedit.extension.factory.BlockFactory;
-import com.sk89q.worldedit.extension.input.ParserContext;
-import com.sk89q.worldedit.world.block.BlockStateHolder;
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
+// import com.sk89q.worldedit.MaxChangedBlocksException;
+// import com.sk89q.worldedit.WorldEdit;
+// import com.sk89q.worldedit.WorldEditException;
+// import com.sk89q.worldedit.extension.factory.BlockFactory;
+// import com.sk89q.worldedit.extension.input.ParserContext;
+// import com.sk89q.worldedit.world.block.BlockStateHolder;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -39,9 +36,6 @@ import net.md_5.bungee.api.ChatColor;
  */
 public class SBAPlugin extends JavaPlugin {
 
-    private WorldGuardPlugin _wg = null;
-    private WorldEdit _we = null;
-    private WorldEditPlugin _wep = null;
     private SBAConfig _config;
     private SBA _speedBuild = null;
 
@@ -51,25 +45,6 @@ public class SBAPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         getLogger().info("Loading SpeedBuildArena");
-
-        // Load plugins
-        Plugin p;
-
-        p = getServer().getPluginManager().getPlugin("WorldGuard");
-        if (p == null || !(p instanceof WorldGuardPlugin)) {
-            getLogger().severe("Failed to load WorldGuard plugin");
-            getServer().getPluginManager().disablePlugin(this);
-            return;
-        }
-        _wg = (WorldGuardPlugin) p;
-        getLogger().info("Loaded WorldGuard plugin");
-
-        p = getServer().getPluginManager().getPlugin("WorldEdit");
-        if (p != null && (p instanceof WorldEditPlugin)) {
-            _wep = (WorldEditPlugin) p;
-            _we = _wep.getWorldEdit();
-            getLogger().info("Loaded WorldEdit plugin");
-        }
 
         saveDefaultConfig();
 
@@ -93,9 +68,6 @@ public class SBAPlugin extends JavaPlugin {
             _speedBuild = null;
         }
         _config = null;
-        _wg = null;
-        _we = null;
-        _wep = null;
     }
 
     /**
@@ -290,15 +262,6 @@ public class SBAPlugin extends JavaPlugin {
      */
     public void printSetFloorUsage(CommandSender sender) {
         sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena setfloor BLOCK");
-    }
-
-    /**
-     * Return the world guard plugin.
-     * 
-     * @return World Guard
-     */
-    public WorldGuardPlugin getWorldGuard() {
-        return _wg;
     }
 
     /**

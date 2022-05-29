@@ -3,12 +3,12 @@ package nu.nerd.SpeedBuildArena;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
-//import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -16,12 +16,11 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.scheduler.BukkitTask;
 
-import com.mewin.WGRegionEvents.events.RegionEnteredEvent;
-import com.mewin.WGRegionEvents.events.RegionLeftEvent;
-import com.sk89q.worldedit.bukkit.BukkitWorld;
-import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+
 import com.sk89q.worldguard.protection.managers.RegionManager;
 import com.sk89q.worldguard.protection.regions.ProtectedRegion;
+import com.sk89q.worldguard.WorldGuard;
 
 import nu.nerd.SpeedBuildArena.SBAScript.SBACommand;
 
@@ -34,7 +33,7 @@ import nu.nerd.SpeedBuildArena.SBAScript.SBACommand;
  * permissions at the end of the round
  *
  */
-public class SBA implements AutoCloseable, Runnable, Listener {
+public class SBA implements AutoCloseable, Runnable {
     private SBAPlugin _sba;
     private SBAConfig _config;
     private RegionManager _wgrm;
@@ -75,7 +74,7 @@ public class SBA implements AutoCloseable, Runnable, Listener {
         }
 
         // Get the region manager for the world
-        _wgrm = WorldGuard.getInstance().getPlatform().getRegionContainer().get(new BukkitWorld(world));
+        _wgrm = WorldGuard.getInstance().getPlatform().getRegionContainer().get(BukkitAdapter.adapt(world));
         if (_wgrm == null) {
             logNthrow("Failed to get World guard RegionManager for world: \"%s\".", world);
         }
@@ -115,13 +114,8 @@ public class SBA implements AutoCloseable, Runnable, Listener {
      * Remove all owners and members from all sba plots
      */
     public void wipePlots() {
-        // String worldName = _config.WORLD_NAME;
         try {
             for (SBAPlot plot : _plots) {
-                // dispatchCommand(String.format("rg removeowner %s -a -w %s",
-                // plot.getPlot().getId(), worldName));
-                // dispatchCommand(String.format("rg removemember %s -a -w %s",
-                // plot.getPlot().getId(), worldName));
                 plot.getPlot().getOwners().clear();
                 plot.getPlot().getMembers().clear();
             }
@@ -164,9 +158,8 @@ public class SBA implements AutoCloseable, Runnable, Listener {
                 stopBossBar();
             } else if (now > _bossBarNextUpdateTime) {
                 _bossBarNextUpdateTime += 1000;
-                _bossBar.setProgress(1.0 - ((double) now - (double) _bossBarStartTime)
-                                           / ((double) _bossBarStopTime
-                                              - (double) _bossBarStartTime));
+                _bossBar.setProgress(((double) now - (double) _bossBarStopTime)
+                     / ((double) _bossBarStartTime - (double) _bossBarStopTime));
                 updateBossTitle(_bossBarStopTime - now);
             }
         }
@@ -182,30 +175,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
         // If _commandIndex is at the end, shut down
         if (_commandIndex >= _script.size()) {
             close();
-        }
-    }
-
-    /**
-     * Add players to the boss bar if they enter the Speed Build Arena
-     * 
-     * @param event The Event
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerEnteredRegion(RegionEnteredEvent event) {
-        if (event.getRegion() == _arena && _bossBar != null) {
-            _bossBar.addPlayer(event.getPlayer());
-        }
-    }
-
-    /**
-     * Remove players from the boss bar if they leave the Speed Build Arena
-     * 
-     * @param event The Event
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerLeftRegion(RegionLeftEvent event) {
-        if (event.getRegion() == _arena && _bossBar != null) {
-            _bossBar.removePlayer(event.getPlayer());
         }
     }
 
@@ -292,31 +261,17 @@ public class SBA implements AutoCloseable, Runnable, Listener {
         if (_bossBar == null) {
             _bossBar = _sba.getServer().createBossBar("", BarColor.BLUE, BarStyle.SOLID);
             _bossBar.setProgress(1.0);
-            _bossBar.setVisible(false);
+            _bossBar.setVisible(true);
             updateBossTitle(duration);
-
-            // Register for events
-            if (_config.HAVE_WGREGION_EVENTS) {
-                _sba.getServer().getPluginManager().registerEvents(this, _sba);
-            }
         }
-
-        // Show the boss bar to all players in Speed Build Arena
-        for (Player player : getServer().getOnlinePlayers()) {
-            int x, y, z;
-            x = (int) player.getLocation().getX();
-            y = (int) player.getLocation().getY();
-            z = (int) player.getLocation().getZ();
-            if (_arena.contains(x, y, z)) {
-                _bossBar.addPlayer(player);
-            }
-        }
-        _bossBar.setVisible(true);
 
         // Setup all the timers
         _bossBarStartTime = System.currentTimeMillis();
         _bossBarStopTime = _bossBarStartTime + duration;
         _bossBarNextUpdateTime = _bossBarStartTime + 1000;
+
+        // Add palyers
+        freshenBossPlayers();
     }
 
     /**
@@ -328,7 +283,6 @@ public class SBA implements AutoCloseable, Runnable, Listener {
             _bossBar.setVisible(false);
             _bossBar = null;
         }
-        HandlerList.unregisterAll(this);
     }
 
     /**
@@ -347,6 +301,31 @@ public class SBA implements AutoCloseable, Runnable, Listener {
             long minutes = acc / 60;
 
             _bossBar.setTitle(String.format("Speed Build %02d:%02d", minutes, seconds));
+            freshenBossPlayers();
+        }
+    }
+
+    /**
+     * Make sure only players in the _arena see the boss bar.
+     */
+    private void freshenBossPlayers() {
+        if (_bossBar == null) {
+            return;
+        }
+
+        for (Player player: getServer().getOnlinePlayers()) {
+            Location location = player.getLocation();
+            int x = (int)location.getX();
+            int y = (int)location.getY();
+            int z = (int)location.getZ();
+
+            // It is apparently OK to add or remove a player multiple times
+            // from the boss bar.
+            if (_arena.contains(x, y, z)) {
+                _bossBar.addPlayer(player);
+            } else {
+                _bossBar.removePlayer(player);
+            }
         }
     }
 
