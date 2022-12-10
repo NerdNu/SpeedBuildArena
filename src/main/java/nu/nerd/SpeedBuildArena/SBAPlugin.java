@@ -15,12 +15,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
-// import com.sk89q.worldedit.MaxChangedBlocksException;
-// import com.sk89q.worldedit.WorldEdit;
-// import com.sk89q.worldedit.WorldEditException;
-// import com.sk89q.worldedit.extension.factory.BlockFactory;
-// import com.sk89q.worldedit.extension.input.ParserContext;
-// import com.sk89q.worldedit.world.block.BlockStateHolder;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.EditSession;
+import com.sk89q.worldedit.MaxChangedBlocksException;
+import com.sk89q.worldedit.NotABlockException;
+import com.sk89q.worldedit.regions.CuboidRegion;
+import com.sk89q.worldedit.util.HandSide;
+import com.sk89q.worldedit.world.block.BaseBlock;
+import com.sk89q.worldedit.WorldEdit;
+import com.sk89q.worldedit.WorldEditException;
 
 import net.md_5.bungee.api.ChatColor;
 
@@ -198,16 +201,88 @@ public class SBAPlugin extends JavaPlugin {
      * @param sender The player
      * @param args The block type to set the floor too
      */
-    private void cmdSetFloor(CommandSender sender, String[] args) {
-        int num = (int)(Math.random()*4.0);
-        String msg;
-        switch (num) {
-            case 0: msg = "This command is down for repairs."; break;
-            case 1: msg = "Try again later."; break;
-            case 2: msg = "I can't do that Dave."; break;
-            default: msg = "This command is down. Please try again."; break;
+    private void cmdSetFloor(CommandSender sender, String[] args) throws WorldEditException, MaxChangedBlocksException{
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("Silly Console. Trix are for kids");
+            return;
         }
-        sender.sendMessage(ChatColor.RED + msg);
+        
+        Player player = (Player)sender;
+
+        // Ensure that an event is in progress
+        if (_speedBuild == null) {
+            sender.sendMessage(ChatColor.RED + "A Speed Build event is not in progress. Sorry :(");
+            return;
+        }
+        
+        if (args.length != 0) {
+            printSetFloorUsage(sender);
+            return;
+        }
+
+        World world = getServer().getWorld(_config.WORLD_NAME);
+        if (world == null) {
+            throw new IllegalStateException("Unknown world \"%s\"".format(_config.WORLD_NAME));
+        }
+
+        //// Find what plot the player is in.
+        int x, y, z;
+        x = (int)player.getLocation().getX();
+        y = (int)player.getLocation().getY();
+        z = (int)player.getLocation().getZ();
+        SBAPlot plot = null;
+        for(SBAPlot p : _speedBuild.getPlots()) {
+            if(p.getPlot().contains(x, y, z)) {
+                // Make sure the player is registered with this plot
+                if (p.getPlot().getOwners().contains(player.getUniqueId())
+                   || p.getPlot().getMembers().contains(player.getUniqueId())) {
+                    plot = p;
+                    break;
+                } else {
+                    sender.sendMessage(ChatColor.RED + "Get off my lawn, you whippersnapper! Find your own plot!");
+                    return;
+                } 
+            }
+        }
+        if (plot == null) {
+            sender.sendMessage(ChatColor.RED + "You must be standing in your plot");
+            return;
+        }
+
+        //// Create WE region
+        CuboidRegion region = new CuboidRegion(
+            plot.getFloor().getMaximumPoint(),
+            plot.getFloor().getMinimumPoint());
+
+        //// Lookup the block.
+        BaseBlock block = null;
+        try {
+            block = BukkitAdapter.adapt(player).getBlockInHand(HandSide.MAIN_HAND);
+        } catch (NotABlockException e) {
+            sendInvalidBlockMsg(sender);
+            return;
+        }
+
+        //// Block blocks that are not solid, such as air and levers.
+        if (block == null || !block.getBlockType().getMaterial().isSolid()) {
+            // Don't allow org.bukkit.Materiall.AIR
+            sendInvalidBlockMsg(sender);
+            return;
+        }
+
+        //// Set the floor.
+        try (EditSession editSession = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(world))) {
+            editSession.setBlocks(region, block);
+        }
+
+    }
+
+    /**
+    * Send the invalid block message to the player
+    * 
+    */
+    public void sendInvalidBlockMsg(CommandSender sender) {
+        sender.sendMessage(ChatColor.RED + "You must hold a " + ChatColor.BOLD + "block" + ChatColor.RESET + ChatColor.RED + " in your hand.");
     }
 
     /**
@@ -261,7 +336,7 @@ public class SBAPlugin extends JavaPlugin {
      * @param sender
      */
     public void printSetFloorUsage(CommandSender sender) {
-        sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena setfloor BLOCK");
+        sender.sendMessage(ChatColor.GREEN + "/SpeedBuildArena setfloor");
     }
 
     /**

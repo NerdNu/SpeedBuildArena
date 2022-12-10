@@ -23,6 +23,9 @@ plots:
     plot3:
       region_plot: sbaplot03
       region_floor: sbaplot03_floor
+    plot4:
+      region_plot: sbaplot04
+      region_floor: sbaplot04_floor
 
 # Example arena command sequence.
 # There are 4 commands you can use.
